@@ -1,0 +1,174 @@
+---
+title: "BOSTON HOUSING DATA SET"
+author: "SHUBHAM SHARMA"
+date: "June 13, 2017"
+output: html_document
+---
+
+
+
+## PREDICTION ON BOSTON HOUSING DATA SET
+
+This project is based on the prediction of median value of owner occupied homes.You can get the data set on the following link
+http://archive.ics.uci.edu/ml/machine-learning-databases/housing/
+
+To read the table and give the column names , use the following command 
+```{r}
+ housing <- read.table("housing.data.txt")
+colnames(housing) <- c("CRIM","ZN","INDUS","CHAS","NOX","RM","AGE","DIS","RAD","TAX","PTRATIO","B","LSTAT","MEDV") 
+```
+
+Now divide the data set into 2 parts -
+- training
+- testing
+
+Build all your model fit on training set and do prediction on testing set.
+
+For dividing the data set into 2 parts ,"caret",package is required .
+If you don't have it , first install it, using command
+install.packages("caret")
+
+Now to use that package load it,by using command
+
+
+```{r}
+library("caret")
+```
+
+```{r}
+library("randomForest")
+```
+
+Now you can divide the data set into 2 parts(i.e training and testing),by using createDataPartition() function, which is available in caret package,so use command
+```{r}
+
+intrain <- createDataPartition(y = housing$MEDV,p = 0.7,list = FALSE)
+training <- housing[intrain,]
+testing <- housing[-intrain,]
+```
+
+Above commands say that intrain variable contains 70% of rows of iris data and training data set will contain rows that were in intrain variable, and testing data set will contain rows that were not in intrain variable.
+
+So our training data set will contain 70% of our original data and testing data set will contain 30% of our data.
+
+To view training and testing data set , use command
+```{r}
+View(training)
+View(testing)
+```
+
+To see no. of rows in the training and testing data set use
+```{r}
+dim(training)
+```
+```{r}
+dim(testing)
+```
+
+## MODEL FITTING 1
+
+For 1st model fitting we will use random forest algorithm. For this we will use randomForest() function. First of all load the random forest package.
+
+```{r}
+library("randomForest")
+```
+ 
+Now for model fitting use command
+```{r}
+fit1 <- randomForest(MEDV~.,data = training,importance = TRUE,ntree = 2000)
+```
+
+Above command says that apply randomForest() function on training data set. The outcome column is MEDV. Generate 2000 trees.
+
+To get any individual tree use
+```{r}
+getTree(fit1,k = 4)
+```
+
+Above command says that get 4th tree. It will tell you its details.
+
+## PREDICTION 1
+
+Now for prediction on above fit algorithm on testing data set, use,
+```{r}
+pred1 <- predict(fit1,testing)
+```
+
+Now to check how correst above prediction worked. We will see the mean of the difference of predicted values and exact values , use command
+```{r}
+mean(abs(pred1 - testing$MEDV))
+```
+
+Now to see the R square error , we will use command
+```{r}
+sqrt(sum(pred1 - testing$MEDV)^2)
+```
+
+## MODEL FITTING 2
+
+For 2nd model fitting we will use generalised linear model regression.For this we will use train() function.Use command
+```{r}
+fit2 <- train(MEDV~.,data = training,method = "glm")
+fit2$finalModel
+```
+
+Above command says that apply glm(i.e generalised linear model) on training data set.The outcome column is MEDV.
+
+## PREDICTION 2
+
+Now for prediction on above fit algorithm on testing data set, use
+```{r}
+pred2 <- predict(fit2,testing)
+```
+
+Now to check how correst above prediction worked. We will see the mean of the difference of predicted values and exact values , use command
+```{r}
+mean(abs(pred2 - testing$MEDV))
+```
+
+Now to see the R square error , we will use command
+```{r}
+sqrt(sum(testing$MEDV - pred2)^2)
+```
+
+You will observe that mean and r square error of first algorithm is better than 2nd algorithm.
+
+Let us see the plot of both algorithms , use command,
+````{r}
+qplot(pred1,pred2,color = MEDV,data = testing)
+```
+
+You will observe that the plot is not too good.
+
+Let us combine both the prediction algorithms.
+
+## MODEL FITTING 3
+
+For combined model fitting of above two algorithms use,
+
+```{r}
+preddf <- data.frame(pred1,pred2,MEDV = testing$MEDV)
+combmodfit <- train(MEDV~.,method = "gam",data = preddf)
+```
+
+We have made a new data frame which contains pred1 values,pred2 values,and MEDV of testing data set. 
+We have applied the combined model fitting on this new data frame using train() function.Here the outcome variable is MEDV column.
+
+## PREDICTION 3
+
+Now for prediction on above fit on testing data set, use
+```{r}
+combpred <- predict(combmodfit,preddf)
+```
+
+Now to check how correst above prediction worked. We will see the mean of the difference of predicted values and exact values , use command
+```{r}
+mean(abs(combpred - testing$MEDV))
+```
+
+Now to see the R square error , we will use command
+```{r}
+sqrt(sum(combpred - testing$MEDV)^2)
+```
+
+You will observe that mean and R square error of above combined fitting is best observed so far.And so it is the best prediction that we can get.
